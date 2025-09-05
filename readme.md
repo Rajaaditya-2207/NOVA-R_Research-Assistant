@@ -18,7 +18,7 @@ An intelligent, web-based research assistant powered by the OpenAI API and built
 ## 🛠️ Tech Stack
 
 -   **Backend:** Python, Flask
--   **AI:** OpenAI API
+-   **AI:** NVIDIA API
 -   **Frontend:** HTML, Tailwind CSS (via CDN)
 -   **Deployment:** Vercel
 
