@@ -7,7 +7,7 @@
 
 An intelligent, web-based research assistant powered by the OpenAI API and built with Flask. NOVA-R provides a clean, minimalist interface for users to ask complex questions and receive insightful, AI-generated answers in real-time.
 
-![NOVA-R Screenshot](https://i.imgur.com/example-screenshot.png) ## ✨ Features
+![NOVA-R Screenshot](<img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/fbbdcee6-8c9c-479a-ac51-e298a9c10ea0" />) ## ✨ Features
 
 -   **AI-Powered Responses:** Leverages the power of OpenAI's models to provide detailed and context-aware answers.
 -   **Minimalist UI:** A clean and responsive user interface that focuses on the conversation.
