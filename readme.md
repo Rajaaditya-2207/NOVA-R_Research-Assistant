@@ -9,7 +9,7 @@ An intelligent, web-based research assistant powered by the NVIDIA API and built
 
 ## ✨ Features
 
--   **AI-Powered Responses:** Leverages the power of OpenAI's models to provide detailed and context-aware answers.
+-   **AI-Powered Responses:** Leverages the power of NVIDIA's models to provide detailed and context-aware answers.
 -   **Minimalist UI:** A clean and responsive user interface that focuses on the conversation.
 -   **Lightweight Backend:** Built with the fast and efficient Flask micro-framework.
 -   **Easy Setup:** Get the project running locally in just a few minutes with standard Python tools.
