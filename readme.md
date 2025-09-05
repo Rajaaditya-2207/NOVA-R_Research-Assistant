@@ -5,7 +5,7 @@
 ![Framework](https://img.shields.io/badge/Flask-2.3-orange)
 ![Vercel](https://therealsujitk-vercel-badge.vercel.app/?app=nova-r-research-assistant)
 
-An intelligent, web-based research assistant powered by the OpenAI API and built with Flask. NOVA-R provides a clean, minimalist interface for users to ask complex questions and receive insightful, AI-generated answers in real-time.
+An intelligent, web-based research assistant powered by the NVIDIA API and built with Flask. NOVA-R provides a clean, minimalist interface for users to ask complex questions and receive insightful, AI-generated answers in real-time.
 
 ## ✨ Features
 
