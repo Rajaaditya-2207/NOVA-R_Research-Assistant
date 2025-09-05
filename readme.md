@@ -60,13 +60,13 @@ You need to have the following installed on your system:
     ```
 
 4.  **Set Up Environment Variables**
-    You need an OpenAI API key to use the application. The project uses a `.env` file to manage this key securely.
+    You need an NVIDIA API key to use the application. The project uses a `.env` file to manage this key securely.
     -   Rename the example file `.env.example` to `.env`.
-    -   Open the new `.env` file and add your OpenAI API key.
+    -   Open the new `.env` file and add your NVIDIA API key.
 
     **File: `.env`**
     ```
-    OPENAI_API_KEY="sk-YourSecretApiKeyHere"
+    NVIDIA_API_KEY="YourApiKeyHere"
     ```
 
 ### Running the Application
