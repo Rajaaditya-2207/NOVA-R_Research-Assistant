@@ -1,23 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>NOVA-R | Welcome</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NOVA‑R · AI Research Assistant</title>
   <link rel="stylesheet" href="/static/css/styles.css">
   <script defer src="/static/js/main.js"></script>
 </head>
 <body class="welcome-body">
-  <div class="welcome-container">
-    <h1 class="animated-text">🚀 Welcome to NOVA-R</h1>
-    <p class="subtitle">AI-powered Chat with RAG, Web Search & Docs</p>
+  <main class="welcome-container">
+    <div class="card">
+      <h1 class="logo">NOVA‑R</h1>
+      <p class="subtitle">Ask questions, upload documents, and let NOVA‑R fetch context from your knowledge base.</p>
 
-    <div class="button-container">
-      <a href="/auth/login" class="btn google-btn">Sign up / Login with Google</a>
+      <div class="cta-row">
+        <a class="btn google-btn" href="/auth/login">Login with Google</a>
+        <a class="btn ghost" id="guest-btn" href="/chat">Try as Guest</a>
+      </div>
 
-      <button id="guest-btn" class="btn guest-btn">
-        Try without signing in <span class="arrow">➤</span>
-      </button>
+      <p class="footnote">Works best with plain text documents. PDF/DOCX support is basic.</p>
     </div>
-  </div>
+  </main>
 </body>
 </html>

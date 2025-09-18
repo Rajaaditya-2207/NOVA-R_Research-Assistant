@@ -1,17 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>NOVA-R | Login</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NOVA‑R · Sign in</title>
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
-<body class="login-body">
-  <div class="login-container">
-    <h2>Login with Google</h2>
-    <p>Redirecting to Google...</p>
-    <script>
-      window.location.href = "/auth/google"; // Backend handles Google OAuth
-    </script>
-  </div>
+<body class="welcome-body">
+  <main class="welcome-container">
+    <div class="card">
+      <h2>Sign up / Sign in</h2>
+      <p class="subtitle">Use Google to sign in and save your chat sessions to your account.</p>
+
+      <div class="cta-row">
+        <a class="btn google-btn" href="/auth/login">Continue with Google</a>
+        <a class="btn ghost" href="/chat">Continue as Guest</a>
+      </div>
+
+      <p class="footnote">By signing in you can store and revisit your conversation history and uploaded documents.</p>
+    </div>
+  </main>
 </body>
 </html>

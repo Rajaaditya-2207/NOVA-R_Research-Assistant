@@ -1,36 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>NOVA-R | Chat</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NOVA-R · Chat</title>
   <link rel="stylesheet" href="/static/css/styles.css">
   <script defer src="/static/js/main.js"></script>
 </head>
 <body class="chat-body light-theme">
-  <header class="chat-header">
-    <h1>NOVA-R Chat</h1>
-    <button id="theme-toggle">🌙 Dark Mode</button>
-  </header>
-
-  <main class="chat-container">
-    <aside class="sessions-panel">
-      <h3>Previous Sessions</h3>
-      <ul id="session-list">
-        <!-- Filled by JS if logged in -->
-      </ul>
-    </aside>
-
-    <section class="chat-panel">
-      <div id="chat-window" class="chat-window">
-        <!-- Chat messages here -->
+  <div class="app-shell">
+    <header class="chat-header">
+      <div class="brand">
+        <h1>NOVA‑R</h1>
+        <p class="tag">AI Research Assistant</p>
       </div>
-      <div class="chat-input-area">
-        <input type="text" id="chat-input" placeholder="Type a message...">
-        <button id="send-btn">Send</button>
-        <input type="file" id="doc-upload" multiple accept=".pdf,.txt,.docx" />
+      <div class="user-controls">
+        {% if user %}
+          <div class="user-badge">{{ user['name'] or user['email'] }}</div>
+          <a class="link-btn" href="/auth/logout">Logout</a>
+        {% else %}
+          <a class="btn google-btn" href="/auth/login">Login with Google</a>
+          <a class="link-btn" href="/">Back</a>
+        {% endif %}
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">🌙</button>
       </div>
-      <small id="doc-limit-msg"></small>
-    </section>
-  </main>
+    </header>
+
+    <main class="chat-main">
+      <aside class="sessions-panel" aria-label="Sessions">
+        <div class="sessions-header">
+          <h3>Conversations</h3>
+          <button id="new-session">＋ New</button>
+        </div>
+        <ul id="session-list" class="session-list">
+          <!-- JS can populate previous sessions when available -->
+        </ul>
+      </aside>
+
+      <section class="chat-panel">
+        <div id="chat-window" class="chat-window" role="log" aria-live="polite">
+          <!-- messages injected here -->
+        </div>
+
+        <form id="chat-form" class="chat-form" autocomplete="off">
+          <div class="input-row">
+            <input id="chat-input" name="message" placeholder="Ask NOVA‑R anything..." aria-label="Message input">
+            <label class="file-label">
+              <input id="doc-upload" type="file" accept=".txt,.md,.pdf,.docx" />
+              📎
+            </label>
+            <button id="send-btn" type="submit" class="primary">Send</button>
+          </div>
+          <div class="meta-row">
+            <small id="doc-limit-msg"></small>
+            <div id="status-msg" class="status-msg"></div>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
