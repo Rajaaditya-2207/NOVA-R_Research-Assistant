@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     isWaiting = true;
     sendBtn.disabled = true;
     try{
-      const res = await fetch('/chat/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+      const session_id = await ensureSessionId();
+      const res = await fetch('/chat/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg, session_id})});
       if(!res.ok) throw new Error('Server returned ' + res.status);
       const data = await res.json();
       renderBubble(data.response || '[no response]','ai');
@@ -57,6 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fd.append('file', file, file.name);
     setStatus('Uploading ' + file.name + '...');
     try{
+      const session_id = await ensureSessionId();
+      // append session id so server can associate doc with session
+      fd.append('session_id', session_id);
       const res = await fetch('/chat/upload',{method:'POST',body:fd});
       if(!res.ok) throw new Error('Upload failed ' + res.status);
       const j = await res.json();
@@ -67,6 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
       setStatus('Upload error: ' + err.message);
     }finally{
       setTimeout(()=>setStatus(''),2000);
+    }
+  }
+
+  // create or read session_id from localStorage
+  async function ensureSessionId(){
+    let sid = localStorage.getItem('nova_session_id');
+    if(sid) return sid;
+    // create new session on server
+    try{
+      const res = await fetch('/chat/session', {method:'POST'});
+      const j = await res.json();
+      sid = j.session_id;
+      localStorage.setItem('nova_session_id', sid);
+      return sid;
+    }catch(e){
+      // fallback: generate a client-side uuid
+      sid = 'local-' + Math.random().toString(36).slice(2,10);
+      localStorage.setItem('nova_session_id', sid);
+      return sid;
     }
   }
 
