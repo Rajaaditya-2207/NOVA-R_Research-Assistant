@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NOVA-R | Chat</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script defer src="/static/js/main.js"></script>
+</head>
+<body class="chat-body light-theme">
+  <header class="chat-header">
+    <h1>NOVA-R Chat</h1>
+    <button id="theme-toggle">🌙 Dark Mode</button>
+  </header>
+
+  <main class="chat-container">
+    <aside class="sessions-panel">
+      <h3>Previous Sessions</h3>
+      <ul id="session-list">
+        <!-- Filled by JS if logged in -->
+      </ul>
+    </aside>
+
+    <section class="chat-panel">
+      <div id="chat-window" class="chat-window">
+        <!-- Chat messages here -->
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type a message...">
+        <button id="send-btn">Send</button>
+        <input type="file" id="doc-upload" multiple accept=".pdf,.txt,.docx" />
+      </div>
+      <small id="doc-limit-msg"></small>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,120 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  transition: background 0.3s, color 0.3s;
+}
+
+.welcome-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(120deg, #1e3c72, #2a5298);
+  color: white;
+  text-align: center;
+}
+
+.animated-text {
+  animation: fadeInDown 2s ease-in-out;
+  font-size: 2.5rem;
+}
+
+.subtitle { margin: 10px 0 30px; }
+
+.button-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.google-btn { background: #4285F4; color: white; }
+.guest-btn { background: black; color: white; }
+
+.arrow {
+  display: inline-block;
+  margin-left: 8px;
+  animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateX(0); }
+  to { transform: translateX(5px); }
+}
+
+.chat-body.light-theme { background: #f9f9f9; color: black; }
+.chat-body.dark-theme { background: #121212; color: white; }
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #444;
+  color: white;
+}
+
+.chat-container {
+  display: flex;
+  height: calc(100vh - 50px);
+}
+
+.sessions-panel {
+  width: 25%;
+  padding: 10px;
+  border-right: 1px solid gray;
+}
+
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-window {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  border-bottom: 1px solid gray;
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* New / improved styles */
+.welcome-container {
+  max-width: 900px;
+  padding: 24px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.chat-msg { margin: 8px 0; padding: 10px; border-radius: 8px; max-width: 80%; }
+.chat-msg.user { background: rgba(255,255,255,0.1); align-self: flex-end; }
+.chat-msg.ai { background: rgba(0,0,0,0.2); align-self: flex-start; }
+
+#chat-window { display: flex; flex-direction: column; }
+
+.chat-input-area input[type="text"] { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
+.chat-input-area button { padding: 10px 14px; border-radius: 6px; }
+
+.sessions-panel { background: rgba(255,255,255,0.03); }
+
+@media (max-width: 800px) {
+  .sessions-panel { display: none; }
+  .button-container { flex-direction: column; }
+}
