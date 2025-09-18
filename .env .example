@@ -1,1 +1,16 @@
-API_KEY =
+FLASK_SECRET_KEY=replace_with_a_secret
+SESSION_TYPE=filesystem
+DATABASE_URL=sqlite:///data/novar.db
+
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_DISCOVERY_URL=https://accounts.google.com/.well-known/openid-configuration
+
+EMBEDDING_MODEL=sentence-transformers/all-mpnet-base-v2
+RAG_TOP_K=4
+
+SEARCH_PROVIDER=duckduckgo
+SERPAPI_KEY=
+
+UPLOAD_FOLDER=uploads
+MAX_CONTENT_LENGTH=52428800
