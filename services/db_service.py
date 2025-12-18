@@ -538,11 +538,11 @@ def delete_session(session_id, user_id=None):
     if user_id:
         _execute(cur, "SELECT user_id FROM sessions WHERE id = ?", (session_id,))
         row = cur.fetchone()
-        if not row or row[0] != user_id:
+        if not row or row.get('user_id') != user_id:
             conn.close()
             return False
     
-    # Delete associated data
+    # Delete associated data (cascade delete handles this in PostgreSQL)
     _execute(cur, "DELETE FROM chat_history WHERE session_id = ?", (session_id,))
     _execute(cur, "DELETE FROM documents WHERE session_id = ?", (session_id,))
     _execute(cur, "DELETE FROM sessions WHERE id = ?", (session_id,))
