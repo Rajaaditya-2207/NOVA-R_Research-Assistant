@@ -198,15 +198,15 @@ def _dict_row(row):
     return dict(row)
 
 
-def save_document(content, embedding, user_id=None, session_id=None, filename=None, file_path=None, file_data=None):
+def save_document(content, embedding, user_id=None, session_id=None, filename=None, file_data=None):
     """Save a document with its embedding to the database"""
     conn = _conn()
     cur = _cursor(conn)
     created_at = datetime.utcnow().isoformat()
     _execute(cur, """
-        INSERT INTO documents (content, embedding, user_id, session_id, filename, file_path, file_data, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (content, json.dumps(embedding), user_id, session_id, filename, file_path, file_data, created_at))
+        INSERT INTO documents (content, embedding, user_id, session_id, filename, file_data, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (content, json.dumps(embedding), user_id, session_id, filename, file_data, created_at))
     
     if IS_POSTGRES:
         _execute(cur, "SELECT lastval()")

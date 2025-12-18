@@ -335,7 +335,6 @@ def upload_document():
                     user_id=user_id,
                     session_id=session_id,
                     filename=filename,
-                    file_path=unique_filename,
                     file_data=image_base64  # Store base64 data in database
                 )
                 
@@ -436,14 +435,13 @@ def upload_document():
                 # Create chunk filename
                 chunk_filename = filename if len(chunks) == 1 else f"{filename} (part {i+1}/{len(chunks)})"
                 
-                # Save chunk to database (all chunks share the same file_path)
+                # Save chunk to database
                 document_id, created_at = save_document(
                     chunk,
                     embedding,
                     user_id=user_id,
                     session_id=session_id,
-                    filename=chunk_filename,
-                    file_path=unique_filename  # All chunks reference the same original file
+                    filename=chunk_filename
                 )
                 document_ids.append(document_id)
             except Exception as chunk_error:
