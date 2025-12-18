@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "name": "nova-r-research-assistant",
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "memory": 1024,
-        "maxDuration": 30
-      }
+      "use": "@vercel/python"
     },
     {
       "src": "frontend/package.json",
@@ -25,12 +19,8 @@
       "dest": "/frontend/dist/assets/$1"
     },
     {
-      "src": "/nova-avatar.png",
-      "dest": "/frontend/dist/nova-avatar.png"
-    },
-    {
-      "src": "/NOVA-R.png",
-      "dest": "/frontend/dist/NOVA-R.png"
+      "src": "/(.*\\.(png|jpg|jpeg|gif|svg|ico))",
+      "dest": "/frontend/dist/$1"
     },
     {
       "src": "/api/(.*)",
@@ -48,10 +38,5 @@
       "src": "/(.*)",
       "dest": "/frontend/dist/index.html"
     }
-  ],
-  "env": {
-    "FLASK_ENV": "production",
-    "PYTHONUNBUFFERED": "1"
-  },
-  "regions": ["iad1"]
+  ]
 }
