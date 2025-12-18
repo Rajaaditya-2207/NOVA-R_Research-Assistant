@@ -159,9 +159,9 @@ def _execute(cur, query, params=None):
         # Convert SQLite ? placeholders to PostgreSQL %s
         query = query.replace('?', '%s')
     if params:
-        _execute(cur, query, params)
+        cur.execute(query, params)
     else:
-        _execute(cur, query)
+        cur.execute(query)
 
 
 def _cursor(conn):
