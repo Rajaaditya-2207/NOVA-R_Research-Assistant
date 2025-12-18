@@ -92,6 +92,14 @@ def google_callback():
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
         redirect_path = session.pop('auth_redirect', '/chat')
         
+        # Check if redirect_path is a full URL or just a path
+        if redirect_path.startswith('http://') or redirect_path.startswith('https://'):
+            # Already a full URL
+            redirect_url = redirect_path
+        else:
+            # Just a path, prepend frontend URL
+            redirect_url = f"{frontend_url}{redirect_path}"
+        
         # Return a success page that closes the popup window and redirects parent
         html = f"""<!DOCTYPE html>
 <html>
@@ -113,13 +121,13 @@ def google_callback():
             try {{
                 window.opener.postMessage({{ type: 'oauth-success' }}, '{frontend_url}');
                 // Redirect parent window to chat page
-                window.opener.location.href = '{frontend_url}{redirect_path}';
+                window.opener.location.href = '{redirect_url}';
             }} catch (e) {{
                 console.error('Could not notify parent window:', e);
             }}
         }} else {{
             // Not a popup - redirect this window
-            window.location.href = '{frontend_url}{redirect_path}';
+            window.location.href = '{redirect_url}';
         }}
         
         // Close this window after a short delay if it's a popup
