@@ -6,7 +6,9 @@
       "src": "app.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "15mb"
+        "maxLambdaSize": "15mb",
+        "memory": 1024,
+        "maxDuration": 30
       }
     },
     {
@@ -51,11 +53,5 @@
     "FLASK_ENV": "production",
     "PYTHONUNBUFFERED": "1"
   },
-  "regions": ["iad1"],
-  "functions": {
-    "app.py": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
+  "regions": ["iad1"]
 }
