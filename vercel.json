@@ -15,8 +15,7 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "frontend/dist",
-        "buildCommand": "cd frontend && npx vite build"
+        "distDir": "frontend/dist"
       }
     }
   ],
