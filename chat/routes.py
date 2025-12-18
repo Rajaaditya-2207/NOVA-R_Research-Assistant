@@ -316,7 +316,7 @@ def upload_document():
                 # Check if this exact filename already exists in the session to prevent duplicates
                 existing_docs = get_document_metadata_for_session(session_id)
                 for doc in existing_docs:
-                    if doc.get('filename') == filename:
+                    if doc.get('name') == filename:
                         print(f"⚠️ Image '{filename}' already exists in session, returning existing")
                         return jsonify({
                             'success': True,
@@ -325,7 +325,6 @@ def upload_document():
                             'url': image_data_url,
                             'filename': filename,
                             'size': len(image_bytes),
-                            'file_path': doc.get('file_path', unique_filename),
                             'duplicate': True
                         })
                 
@@ -340,14 +339,15 @@ def upload_document():
                     file_data=image_base64  # Store base64 data in database
                 )
                 
+                print(f"✅ Image saved with ID: {image_id}")
+                
                 return jsonify({
                     'success': True,
                     'type': 'image',
-                    'id': image_id,  # Use database ID
+                    'id': image_id,
                     'url': image_data_url,
                     'filename': filename,
-                    'size': len(image_bytes),
-                    'file_path': unique_filename
+                    'size': len(image_bytes)
                 })
             except Exception as e:
                 print(f"❌ Error processing image: {e}", flush=True)
