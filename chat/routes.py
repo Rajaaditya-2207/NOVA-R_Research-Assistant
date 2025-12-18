@@ -488,6 +488,7 @@ def list_session_documents(session_id):
         return jsonify({'error': 'Failed to retrieve documents', 'details': str(e)}), 500
 
 
+@chat_bp.route('/file/<int:document_id>', methods=['GET'])
 @chat_bp.route('/documents/file/<int:document_id>', methods=['GET'])
 def get_document_file(document_id):
     """Retrieve a specific file by document ID for preview"""
