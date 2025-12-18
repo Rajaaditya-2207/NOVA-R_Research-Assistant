@@ -272,6 +272,13 @@ def upload_document():
         if not session_id:
             return jsonify({'error': 'No session ID provided'}), 400
         
+        # Ensure session exists in database before uploading
+        user_id = None
+        if 'user' in session:
+            user_id = session['user'].get('email') or session['user'].get('sub')
+        create_session(session_id, user_id)
+        print(f"✅ Session created/verified: {session_id}")
+        
         filename = file.filename
         file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
         
@@ -305,11 +312,6 @@ def upload_document():
                 }
                 mime_type = mime_types.get(file_ext, 'image/jpeg')
                 image_data_url = f"data:{mime_type};base64,{image_base64}"
-                
-                # Save image metadata to database (no embedding, empty content)
-                user_id = None
-                if 'user' in session:
-                    user_id = session['user'].get('email') or session['user'].get('sub')
                 
                 print(f"🖼️ Saving image '{filename}' with user_id={user_id}, session_id={session_id}")
                 
@@ -412,11 +414,6 @@ def upload_document():
         null_ratio = content.count('\x00') / len(content) if len(content) > 0 else 0
         if null_ratio > 0.1:  # More than 10% null bytes = likely binary
             return jsonify({'error': 'File appears to be binary. Please upload text-based documents only.'}), 400
-
-        # Get user info
-        user_id = None
-        if 'user' in session:
-            user_id = session['user'].get('email') or session['user'].get('sub')
         
         print(f"📄 Saving document '{filename}' with user_id={user_id}, session_id={session_id}")
 
