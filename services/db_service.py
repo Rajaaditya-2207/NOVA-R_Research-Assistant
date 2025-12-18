@@ -132,11 +132,28 @@ def init_db():
         _execute(cur, "CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
         _execute(cur, "CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
 
-    # Backfill columns for legacy databases (SQLite only)
-    if not IS_POSTGRES:
+    # Add file_data column to existing tables (migration)
+    if IS_POSTGRES:
+        try:
+            # Check if file_data column exists, if not add it
+            _execute(cur, """
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name='documents' AND column_name='file_data'
+            """)
+            if not cur.fetchone():
+                print("Adding file_data column to documents table...")
+                _execute(cur, "ALTER TABLE documents ADD COLUMN file_data TEXT")
+                conn.commit()
+        except Exception as e:
+            print(f"Migration warning (may be normal): {e}")
+    else:
+        # Backfill columns for legacy SQLite databases
         _execute(cur, "PRAGMA table_info(documents)")
         existing_cols = {row[1] for row in cur.fetchall()}
         
+        # Add file_data column if it doesn't exist
+        if 'file_data' not in existing_cols:
+            _execute(cur, "ALTER TABLE documents ADD COLUMN file_data TEXT")
         # Add file_path column if it doesn't exist
         if 'file_path' not in existing_cols:
             _execute(cur, "ALTER TABLE documents ADD COLUMN file_path TEXT")
@@ -402,7 +419,7 @@ def get_document_metadata_for_session(session_id):
     conn = _conn()
     cur = _cursor(conn)
     _execute(cur, """
-        SELECT id, filename, LENGTH(content) AS size, created_at, file_path
+        SELECT id, filename, LENGTH(content) AS size, created_at
         FROM documents
         WHERE session_id = ? AND filename IS NOT NULL AND filename != '' AND filename != 'Document'
         ORDER BY created_at DESC
@@ -414,8 +431,7 @@ def get_document_metadata_for_session(session_id):
             "id": row["id"],
             "name": row["filename"],
             "size": row["size"],
-            "uploaded_at": row["created_at"],
-            "file_path": row["file_path"] if len(row) > 4 else None
+            "uploaded_at": row["created_at"]
         }
         for row in rows
     ]
@@ -426,7 +442,7 @@ def get_documents_for_user(user_id):
     conn = _conn()
     cur = _cursor(conn)
     _execute(cur, """
-        SELECT id, filename, LENGTH(content) AS size, created_at, file_path, session_id
+        SELECT id, filename, LENGTH(content) AS size, created_at, session_id
         FROM documents
         WHERE user_id = ? AND filename IS NOT NULL AND filename != '' AND filename != 'Document'
         ORDER BY created_at DESC
