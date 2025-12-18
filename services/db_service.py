@@ -47,7 +47,7 @@ def init_db():
     
     if IS_POSTGRES:
         # PostgreSQL syntax
-        cur.execute("""
+        _execute(cur, """
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
                 user_id TEXT,
@@ -57,7 +57,7 @@ def init_db():
             )
         """)
         
-        cur.execute("""
+        _execute(cur, """
             CREATE TABLE IF NOT EXISTS documents (
                 id SERIAL PRIMARY KEY,
                 content TEXT NOT NULL,
@@ -70,7 +70,7 @@ def init_db():
             )
         """)
 
-        cur.execute("""
+        _execute(cur, """
             CREATE TABLE IF NOT EXISTS chat_history (
                 id SERIAL PRIMARY KEY,
                 session_id TEXT NOT NULL,
@@ -84,12 +84,12 @@ def init_db():
         """)
 
         # Create indexes for better performance
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+        _execute(cur, "CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
+        _execute(cur, "CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
+        _execute(cur, "CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
     else:
         # SQLite syntax
-        cur.execute("""
+        _execute(cur, """
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
                 user_id TEXT,
@@ -99,7 +99,7 @@ def init_db():
             )
         """)
         
-        cur.execute("""
+        _execute(cur, """
             CREATE TABLE IF NOT EXISTS documents (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 content TEXT NOT NULL,
@@ -112,7 +112,7 @@ def init_db():
             )
         """)
 
-        cur.execute("""
+        _execute(cur, """
             CREATE TABLE IF NOT EXISTS chat_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -126,28 +126,28 @@ def init_db():
         """)
 
         # Create indexes for better performance
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+        _execute(cur, "CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
+        _execute(cur, "CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
+        _execute(cur, "CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
 
     # Backfill columns for legacy databases (SQLite only)
     if not IS_POSTGRES:
-        cur.execute("PRAGMA table_info(documents)")
+        _execute(cur, "PRAGMA table_info(documents)")
         existing_cols = {row[1] for row in cur.fetchall()}
         
         # Add file_path column if it doesn't exist
         if 'file_path' not in existing_cols:
-            cur.execute("ALTER TABLE documents ADD COLUMN file_path TEXT")
+            _execute(cur, "ALTER TABLE documents ADD COLUMN file_path TEXT")
         if "filename" not in existing_cols:
-            cur.execute("ALTER TABLE documents ADD COLUMN filename TEXT")
+            _execute(cur, "ALTER TABLE documents ADD COLUMN filename TEXT")
         if "created_at" not in existing_cols:
-            cur.execute("ALTER TABLE documents ADD COLUMN created_at TEXT")
+            _execute(cur, "ALTER TABLE documents ADD COLUMN created_at TEXT")
         
         # Backfill title column in sessions table
-        cur.execute("PRAGMA table_info(sessions)")
+        _execute(cur, "PRAGMA table_info(sessions)")
         session_cols = {row[1] for row in cur.fetchall()}
         if "title" not in session_cols:
-            cur.execute("ALTER TABLE sessions ADD COLUMN title TEXT")
+            _execute(cur, "ALTER TABLE sessions ADD COLUMN title TEXT")
 
     conn.commit()
     conn.close()
@@ -159,9 +159,9 @@ def _execute(cur, query, params=None):
         # Convert SQLite ? placeholders to PostgreSQL %s
         query = query.replace('?', '%s')
     if params:
-        cur.execute(query, params)
+        _execute(cur, query, params)
     else:
-        cur.execute(query)
+        _execute(cur, query)
 
 
 def _cursor(conn):
@@ -182,9 +182,9 @@ def _dict_row(row):
 def save_document(content, embedding, user_id=None, session_id=None, filename=None, file_path=None):
     """Save a document with its embedding to the database"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     created_at = datetime.utcnow().isoformat()
-    cur.execute("""
+    _execute(cur, """
         INSERT INTO documents (content, embedding, user_id, session_id, filename, file_path, created_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (content, json.dumps(embedding), user_id, session_id, filename, file_path, created_at))
@@ -197,8 +197,8 @@ def save_document(content, embedding, user_id=None, session_id=None, filename=No
 def count_documents_for_session(session_id):
     """Count documents uploaded for a specific session"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM documents WHERE session_id = ?", (session_id,))
+    cur = _cursor(conn)
+    _execute(cur, "SELECT COUNT(*) FROM documents WHERE session_id = ?", (session_id,))
     row = cur.fetchone()
     count = row[0] if row else 0
     conn.close()
@@ -208,8 +208,8 @@ def count_documents_for_session(session_id):
 def get_documents_for_session(session_id):
     """Retrieve all documents for a specific session"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    _execute(cur, """
         SELECT id, content, embedding, filename, created_at FROM documents 
         WHERE session_id = ? ORDER BY created_at DESC
     """, (session_id,))
@@ -230,8 +230,8 @@ def get_documents_for_session(session_id):
 def get_all_documents():
     """Retrieve all documents from the database"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, content, embedding, filename, created_at FROM documents ORDER BY created_at DESC")
+    cur = _cursor(conn)
+    _execute(cur, "SELECT id, content, embedding, filename, created_at FROM documents ORDER BY created_at DESC")
     rows = cur.fetchall()
     conn.close()
     return [
@@ -250,12 +250,12 @@ def save_chat_message(session_id, user_id, role, content, attachments=None):
     """Save a chat message to the database with optional attachments"""
     import json
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     
     # Serialize attachments to JSON if provided
     attachments_json = json.dumps(attachments) if attachments else None
     
-    cur.execute("""
+    _execute(cur, """
         INSERT INTO chat_history (session_id, user_id, role, content, attachments, created_at) 
         VALUES (?, ?, ?, ?, ?, ?)
     """, (session_id, user_id, role, content, attachments_json, datetime.utcnow().isoformat()))
@@ -267,11 +267,12 @@ def get_chat_history(session_id, limit=50):
     """Retrieve chat history for a specific session"""
     import json
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    order_clause = "created_at ASC, id ASC" if IS_POSTGRES else "datetime(created_at) ASC, id ASC"
+    _execute(cur, f"""
         SELECT id, role, content, attachments, created_at FROM chat_history 
         WHERE session_id = ?
-        ORDER BY datetime(created_at) ASC, id ASC
+        ORDER BY {order_clause}
         LIMIT ?
     """, (session_id, limit))
     rows = cur.fetchall()
@@ -291,8 +292,8 @@ def get_chat_history(session_id, limit=50):
 def get_sessions_for_user(user_id):
     """Get all sessions for a specific user with metadata"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    _execute(cur, """
         SELECT 
             s.id,
             s.title,
@@ -302,7 +303,7 @@ def get_sessions_for_user(user_id):
         FROM sessions s
         LEFT JOIN chat_history ch ON s.id = ch.session_id
         WHERE s.user_id = ?
-        GROUP BY s.id
+        GROUP BY s.id, s.title, s.created_at, s.last_activity
         ORDER BY s.last_activity DESC
         LIMIT 50
     """, (user_id,))
@@ -323,16 +324,16 @@ def get_sessions_for_user(user_id):
 def create_session(session_id, user_id=None):
     """Create a new session (only if it doesn't already exist)"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     
     # Check if session already exists
-    cur.execute("SELECT id FROM sessions WHERE id = ?", (session_id,))
+    _execute(cur, "SELECT id FROM sessions WHERE id = ?", (session_id,))
     exists = cur.fetchone()
     
     if not exists:
         # Create new session only if it doesn't exist
         now = datetime.utcnow().isoformat()
-        cur.execute("""
+        _execute(cur, """
             INSERT INTO sessions (id, user_id, created_at, last_activity) 
             VALUES (?, ?, ?, ?)
         """, (session_id, user_id, now, now))
@@ -344,15 +345,15 @@ def create_session(session_id, user_id=None):
 def update_session_activity(session_id):
     """Update the last activity timestamp for a session"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     
     # Check if session exists first
-    cur.execute("SELECT id FROM sessions WHERE id = ?", (session_id,))
+    _execute(cur, "SELECT id FROM sessions WHERE id = ?", (session_id,))
     exists = cur.fetchone()
     
     if exists:
         # Update existing session
-        cur.execute("""
+        _execute(cur, """
             UPDATE sessions SET last_activity = ? WHERE id = ?
         """, (datetime.utcnow().isoformat(), session_id))
     else:
@@ -367,8 +368,8 @@ def update_session_activity(session_id):
 def get_document_metadata_for_session(session_id):
     """Retrieve lightweight metadata for documents in a session"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    _execute(cur, """
         SELECT id, filename, LENGTH(content) AS size, created_at, file_path
         FROM documents
         WHERE session_id = ? AND filename IS NOT NULL AND filename != '' AND filename != 'Document'
@@ -391,8 +392,8 @@ def get_document_metadata_for_session(session_id):
 def get_documents_for_user(user_id):
     """Retrieve all documents uploaded by a user across all their sessions"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    _execute(cur, """
         SELECT id, filename, LENGTH(content) AS size, created_at, file_path, session_id
         FROM documents
         WHERE user_id = ? AND filename IS NOT NULL AND filename != '' AND filename != 'Document'
@@ -419,11 +420,11 @@ def get_documents_for_user(user_id):
 def delete_document(document_id, session_id=None):
     """Delete a document, optionally scoping to a session"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     if session_id:
-        cur.execute("DELETE FROM documents WHERE id = ? AND session_id = ?", (document_id, session_id))
+        _execute(cur, "DELETE FROM documents WHERE id = ? AND session_id = ?", (document_id, session_id))
     else:
-        cur.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+        _execute(cur, "DELETE FROM documents WHERE id = ?", (document_id,))
     deleted = cur.rowcount
     conn.commit()
     conn.close()
@@ -433,8 +434,8 @@ def delete_document(document_id, session_id=None):
 def get_document_by_id(document_id):
     """Retrieve a single document by ID"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    _execute(cur, """
         SELECT id, content, filename, created_at
         FROM documents
         WHERE id = ?
@@ -456,9 +457,9 @@ def get_document_by_id(document_id):
 def delete_documents_by_pattern(base_filename, session_id):
     """Delete all chunks of a document by base filename pattern"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     # Match both exact filename and chunked versions like "filename (part 1/3)"
-    cur.execute("""
+    _execute(cur, """
         DELETE FROM documents 
         WHERE session_id = ? 
         AND (filename = ? OR filename LIKE ?)
@@ -472,8 +473,8 @@ def delete_documents_by_pattern(base_filename, session_id):
 def update_session_title(session_id, title):
     """Update the title of a session"""
     conn = _conn()
-    cur = conn.cursor()
-    cur.execute("""
+    cur = _cursor(conn)
+    _execute(cur, """
         UPDATE sessions SET title = ? WHERE id = ?
     """, (title, session_id))
     conn.commit()
@@ -483,20 +484,20 @@ def update_session_title(session_id, title):
 def delete_session(session_id, user_id=None):
     """Delete a session and all associated data"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     
     # Verify ownership if user_id provided
     if user_id:
-        cur.execute("SELECT user_id FROM sessions WHERE id = ?", (session_id,))
+        _execute(cur, "SELECT user_id FROM sessions WHERE id = ?", (session_id,))
         row = cur.fetchone()
         if not row or row[0] != user_id:
             conn.close()
             return False
     
     # Delete associated data
-    cur.execute("DELETE FROM chat_history WHERE session_id = ?", (session_id,))
-    cur.execute("DELETE FROM documents WHERE session_id = ?", (session_id,))
-    cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+    _execute(cur, "DELETE FROM chat_history WHERE session_id = ?", (session_id,))
+    _execute(cur, "DELETE FROM documents WHERE session_id = ?", (session_id,))
+    _execute(cur, "DELETE FROM sessions WHERE id = ?", (session_id,))
     
     conn.commit()
     conn.close()
