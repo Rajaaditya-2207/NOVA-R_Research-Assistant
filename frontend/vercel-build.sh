@@ -2,6 +2,6 @@
 # Vercel build script for frontend
 
 echo "Building frontend with Vite (skipping TypeScript check)..."
-vite build
+npx vite build
 
 echo "Build complete!"
