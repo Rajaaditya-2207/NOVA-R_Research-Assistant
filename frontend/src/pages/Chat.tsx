@@ -106,8 +106,6 @@ const Chat: React.FC = () => {
   const [uploadedImages, setUploadedImages] = useState<ImageAttachment[]>([])
   const [sessionDocuments, setSessionDocuments] = useState<UploadedFile[]>([])  // Current session docs only
   const [sessionImages, setSessionImages] = useState<ImageAttachment[]>([])  // Current session images only
-  const [userDocuments, setUserDocuments] = useState<UploadedFile[]>([])  // User-level docs (persist across sessions)
-  const [userImages, setUserImages] = useState<ImageAttachment[]>([])  // User-level images (persist across sessions)
   const [error, setError] = useState<string | null>(null)
   const [uploadNotifications, setUploadNotifications] = useState<UploadNotification[]>([])
   const [viewingFile, setViewingFile] = useState<UploadedFile | null>(null)
@@ -301,91 +299,7 @@ const Chat: React.FC = () => {
     }
   }, [displayError])
 
-  const loadAllUserDocuments = useCallback(async () => {
-    // Load all documents across all sessions for logged-in user
-    try {
-      const response = await fetch(buildUrl('/chat/documents/user/all'), { credentials: 'include' })
-      if (!response.ok) {
-        console.warn('Could not load user documents (may not be logged in)')
-        return
-      }
-      const data = await response.json()
-      const docs = Array.isArray(data.documents) ? data.documents : []
-      
-      // Filter out documents without proper filenames
-      const validDocs = docs.filter((doc: Record<string, unknown>) => {
-        const name = doc.name ?? doc.filename
-        return name && String(name).trim() !== '' && String(name) !== 'Document'
-      })
-      
-      // Separate images from documents
-      const images: ImageAttachment[] = []
-      const documentFiles: UploadedFile[] = []
-      
-      // Group chunks by base filename for documents
-      const fileGroups = new Map<string, { ids: number[], size: number, uploadedAt?: string, filePath?: string }>()
-      
-      validDocs.forEach((doc: Record<string, unknown>) => {
-        const fullName = String(doc.filename ?? 'Document')
-        const filePath = typeof doc.file_path === 'string' ? doc.file_path : undefined
-        const docSize = typeof doc.size === 'number' ? doc.size : 0
-        const docId = Number(doc.id)
-        const uploadedAt = typeof doc.created_at === 'string' ? doc.created_at : undefined
-        
-        // Check if it's an image based on file_path extension
-        if (filePath && /\.(png|jpg|jpeg|gif|webp|bmp)$/i.test(filePath)) {
-          images.push({
-            id: String(docId),
-            url: buildUrl(`/chat/file/${filePath}`),
-            filename: fullName,
-            size: docSize,
-            filePath
-          })
-        } else {
-          // Extract base filename (remove " (part X/Y)" suffix for chunked documents)
-          const baseNameMatch = fullName.match(/^(.+?)(?: \(part \d+\/\d+\))?$/)
-          const baseName = baseNameMatch ? baseNameMatch[1] : fullName
-          
-          if (fileGroups.has(baseName)) {
-            const group = fileGroups.get(baseName)!
-            group.ids.push(docId)
-            group.size += docSize
-            if (!group.filePath && filePath) {
-              group.filePath = filePath
-            }
-          } else {
-            fileGroups.set(baseName, { 
-              ids: [docId], 
-              size: docSize,
-              uploadedAt,
-              filePath
-            })
-          }
-        }
-      })
-      
-      // Convert grouped files to uploadedFiles format
-      fileGroups.forEach((group, name) => {
-        documentFiles.push({
-          id: group.ids[0],
-          name,
-          size: group.size,
-          uploadedAt: group.uploadedAt,
-          chunks: group.ids.length,
-          filePath: group.filePath
-        })
-      })
-      
-      // Save to user-level state (won't be overwritten by session switches)
-      setUserDocuments(documentFiles)
-      setUserImages(images)
-      userDocsLoadedRef.current = true
-      
-      console.log(`✅ Loaded ${documentFiles.length} documents and ${images.length} images for user`)
-    } catch (error) {
-      console.error('Failed to load user documents:', error)
-    }
-  }, [])
+  // Removed unused loadAllUserDocuments function
 
   const initializeSession = useCallback(async (forceNew = false): Promise<string | null> => {
     setIsBootstrapping(true)
