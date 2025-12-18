@@ -1,91 +1,182 @@
-import sqlite3
 import json
 import os
 from datetime import datetime
 from config import Config
 
-# Get database path from config
-DB_PATH = Config.DATABASE_URL.replace("sqlite:///", "")
+# Determine database type from URL
+DATABASE_URL = Config.DATABASE_URL
+IS_POSTGRES = DATABASE_URL.startswith('postgresql://') or DATABASE_URL.startswith('postgres://')
 
-
-def _conn():
-    """Create database connection and ensure directory exists"""
-    # Ensure the data directory exists
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+if IS_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    from urllib.parse import urlparse
+    
+    # Parse PostgreSQL connection URL
+    result = urlparse(DATABASE_URL)
+    DB_CONFIG = {
+        'dbname': result.path[1:],
+        'user': result.username,
+        'password': result.password,
+        'host': result.hostname,
+        'port': result.port or 5432
+    }
+    
+    def _conn():
+        """Create PostgreSQL database connection"""
+        return psycopg2.connect(**DB_CONFIG)
+else:
+    import sqlite3
+    
+    # Get database path from config
+    DB_PATH = DATABASE_URL.replace("sqlite:///", "")
+    
+    def _conn():
+        """Create SQLite database connection and ensure directory exists"""
+        # Ensure the data directory exists
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 def init_db():
     """Initialize database with required tables"""
     conn = _conn()
-    cur = conn.cursor()
+    cur = _cursor(conn)
     
-    # documents table for storing uploaded files with embeddings
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS documents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            content TEXT NOT NULL,
-            embedding TEXT NOT NULL,
-            user_id TEXT,
-            session_id TEXT,
-            filename TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (session_id) REFERENCES sessions(id)
-        )
-    """)
+    if IS_POSTGRES:
+        # PostgreSQL syntax
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                title TEXT,
+                created_at TIMESTAMP NOT NULL,
+                last_activity TIMESTAMP NOT NULL
+            )
+        """)
+        
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id SERIAL PRIMARY KEY,
+                content TEXT NOT NULL,
+                embedding TEXT NOT NULL,
+                user_id TEXT,
+                session_id TEXT,
+                filename TEXT,
+                created_at TIMESTAMP NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+            )
+        """)
 
-    # chat history table for storing conversations
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            user_id TEXT,
-            role TEXT NOT NULL,
-            content TEXT NOT NULL,
-            attachments TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (session_id) REFERENCES sessions(id)
-        )
-    """)
-    
-    # sessions table for tracking user sessions
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS sessions (
-            id TEXT PRIMARY KEY,
-            user_id TEXT,
-            title TEXT,
-            created_at TEXT NOT NULL,
-            last_activity TEXT NOT NULL
-        )
-    """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id SERIAL PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                user_id TEXT,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                attachments TEXT,
+                created_at TIMESTAMP NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+            )
+        """)
 
-    # Create indexes for better performance
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+        # Create indexes for better performance
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+    else:
+        # SQLite syntax
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                title TEXT,
+                created_at TEXT NOT NULL,
+                last_activity TEXT NOT NULL
+            )
+        """)
+        
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                embedding TEXT NOT NULL,
+                user_id TEXT,
+                session_id TEXT,
+                filename TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id)
+            )
+        """)
 
-    # Backfill columns for legacy databases
-    cur.execute("PRAGMA table_info(documents)")
-    existing_cols = {row[1] for row in cur.fetchall()}
-    
-    # Add file_path column if it doesn't exist
-    if 'file_path' not in existing_cols:
-        cur.execute("ALTER TABLE documents ADD COLUMN file_path TEXT")
-    if "filename" not in existing_cols:
-        cur.execute("ALTER TABLE documents ADD COLUMN filename TEXT")
-    if "created_at" not in existing_cols:
-        cur.execute("ALTER TABLE documents ADD COLUMN created_at TEXT")
-    
-    # Backfill title column in sessions table
-    cur.execute("PRAGMA table_info(sessions)")
-    session_cols = {row[1] for row in cur.fetchall()}
-    if "title" not in session_cols:
-        cur.execute("ALTER TABLE sessions ADD COLUMN title TEXT")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_id TEXT,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                attachments TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id)
+            )
+        """)
+
+        # Create indexes for better performance
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+
+    # Backfill columns for legacy databases (SQLite only)
+    if not IS_POSTGRES:
+        cur.execute("PRAGMA table_info(documents)")
+        existing_cols = {row[1] for row in cur.fetchall()}
+        
+        # Add file_path column if it doesn't exist
+        if 'file_path' not in existing_cols:
+            cur.execute("ALTER TABLE documents ADD COLUMN file_path TEXT")
+        if "filename" not in existing_cols:
+            cur.execute("ALTER TABLE documents ADD COLUMN filename TEXT")
+        if "created_at" not in existing_cols:
+            cur.execute("ALTER TABLE documents ADD COLUMN created_at TEXT")
+        
+        # Backfill title column in sessions table
+        cur.execute("PRAGMA table_info(sessions)")
+        session_cols = {row[1] for row in cur.fetchall()}
+        if "title" not in session_cols:
+            cur.execute("ALTER TABLE sessions ADD COLUMN title TEXT")
 
     conn.commit()
     conn.close()
+
+
+def _execute(cur, query, params=None):
+    """Execute query with correct parameter placeholder for database type"""
+    if IS_POSTGRES and params and '?' in query:
+        # Convert SQLite ? placeholders to PostgreSQL %s
+        query = query.replace('?', '%s')
+    if params:
+        cur.execute(query, params)
+    else:
+        cur.execute(query)
+
+
+def _cursor(conn):
+    """Create database cursor with correct type"""
+    if IS_POSTGRES:
+        return conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        return conn.cursor()
+
+
+def _dict_row(row):
+    """Convert database row to dictionary"""
+    if row is None:
+        return None
+    return dict(row)
 
 
 def save_document(content, embedding, user_id=None, session_id=None, filename=None, file_path=None):
