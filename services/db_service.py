@@ -223,9 +223,9 @@ def count_documents_for_session(session_id):
     """Count documents uploaded for a specific session"""
     conn = _conn()
     cur = _cursor(conn)
-    _execute(cur, "SELECT COUNT(*) FROM documents WHERE session_id = ?", (session_id,))
+    _execute(cur, "SELECT COUNT(*) as count FROM documents WHERE session_id = ?", (session_id,))
     row = cur.fetchone()
-    count = row[0] if row else 0
+    count = row.get('count', 0) if row else 0
     conn.close()
     return count
 
