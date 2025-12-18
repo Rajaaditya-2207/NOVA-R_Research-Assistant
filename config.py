@@ -6,11 +6,18 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "supersecret-change-in-production")
     SESSION_TYPE = os.getenv("SESSION_TYPE", "filesystem")
+    
+    # Database Configuration - supports PostgreSQL for production
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/novar.db")
     
+    # Deployment mode
+    IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production'
+    ENABLE_PERSISTENCE = os.getenv('ENABLE_PERSISTENCE', 'true').lower() == 'true'
+    
     # Session Cookie Configuration (for cross-origin OAuth)
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cookies in OAuth redirects
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    # For development (localhost), use Lax. For production (HTTPS), use None with Secure
+    SESSION_COOKIE_SAMESITE = 'None' if IS_PRODUCTION else 'Lax'
+    SESSION_COOKIE_SECURE = IS_PRODUCTION  # Only use Secure in production
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_NAME = 'novar_session'
     # Don't set SESSION_COOKIE_DOMAIN - let each origin have its own cookies

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTheme } from '../contexts/ThemeContext'
 import { Moon, Sun, ArrowLeft, Loader2 } from 'lucide-react'
 
-const API_BASE_URL = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 const buildUrl = (path: string) => `${API_BASE_URL}${path}`
 

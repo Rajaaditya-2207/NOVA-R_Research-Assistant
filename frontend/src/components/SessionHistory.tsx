@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { MessageSquare, Trash2, Edit2, Check, X } from 'lucide-react'
 
-const API_BASE_URL = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '')
 const buildUrl = (path: string) => `${API_BASE_URL}${path}`
 
 interface Session {

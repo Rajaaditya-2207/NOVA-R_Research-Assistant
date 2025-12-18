@@ -136,10 +136,39 @@ def ask_question():
         # Update session activity (safe even if session doesn't exist yet)
         update_session_activity(session_id)
         
-        # Check if this is a vision query (has images)
-        has_images = image_data_list and len(image_data_list) > 0
+        # Check if this is a vision query (has images - either inline or attached)
+        has_images = (image_data_list and len(image_data_list) > 0) or (attached_images and len(attached_images) > 0)
         
         if has_images:
+            print(f"🔍 Vision query detected - {len(image_data_list)} inline images, {len(attached_images)} attached images")
+            
+            # Prepare image data list - combine inline and attached images
+            all_images = []
+            
+            # Add inline images (base64 data)
+            if image_data_list:
+                all_images.extend(image_data_list)
+            
+            # Add attached images - need to load them from disk
+            if attached_images:
+                for img in attached_images:
+                    file_path = img.get('file_path')
+                    if file_path:
+                        full_path = os.path.join(Config.UPLOAD_FOLDER, file_path)
+                        try:
+                            with open(full_path, 'rb') as f:
+                                img_bytes = f.read()
+                                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                                # Determine mime type from file extension
+                                ext = file_path.rsplit('.', 1)[-1].lower()
+                                mime_map = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 
+                                           'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp'}
+                                mime_type = mime_map.get(ext, 'image/jpeg')
+                                all_images.append(f"data:{mime_type};base64,{img_base64}")
+                                print(f"   Loaded attached image: {img.get('filename')}")
+                        except Exception as e:
+                            print(f"   Error loading image {file_path}: {e}")
+            
             # Use vision model for image analysis
             chat_history = get_chat_history(session_id, limit=10)
             messages = [
@@ -153,8 +182,9 @@ def ask_question():
             # Add current query
             messages.append({"role": "user", "content": query})
             
-            # Use vision model
-            answer = chat_with_vision(messages, image_data_list)
+            # Use vision model with all images
+            answer = chat_with_vision(messages, all_images)
+            print(f"✓ Vision model response generated")
         else:
             # Use text model with RAG for documents
             query_embedding = get_embeddings(query, input_type="query")
@@ -227,75 +257,112 @@ Please answer the question using the document context provided above. Reference 
 @chat_bp.route("/upload", methods=["POST"])
 def upload_document():
     """Handle document and image uploads"""
-    session_id = request.form.get('session_id') or request.args.get('session_id')
-    file = request.files.get('file')
-    
-    if not file or not file.filename:
-        return jsonify({'error': 'No file provided'}), 400
-    
-    if not session_id:
-        return jsonify({'error': 'No session ID provided'}), 400
-    
-    filename = file.filename
-    file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
-    
-    # Check if it's an image - handle differently (no embedding needed)
-    image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
-    if file_ext in image_extensions:
-        try:
-            # Save image file to disk
-            safe_filename = secure_filename(filename)
-            unique_filename = f"{uuid.uuid4()}_{safe_filename}"
-            file_path = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
-            
-            image_bytes = file.read()
-            with open(file_path, 'wb') as f:
-                f.write(image_bytes)
-            
-            # Create base64 for immediate display
-            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-            
-            mime_types = {
-                'png': 'image/png',
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'gif': 'image/gif',
-                'webp': 'image/webp',
-                'bmp': 'image/bmp'
-            }
-            mime_type = mime_types.get(file_ext, 'image/jpeg')
-            image_data_url = f"data:{mime_type};base64,{image_base64}"
-            
-            # Save image metadata to database (no embedding, empty content)
-            user_id = None
-            if 'user' in session:
-                user_id = session['user'].get('email') or session['user'].get('sub')
-            
-            print(f"🖼️ Saving image '{filename}' with user_id={user_id}, session_id={session_id}")
-            
-            # Store image reference in database for persistence
-            image_id, created_at = save_document(
-                content=f"[IMAGE: {filename}]",  # Placeholder content
-                embedding=[0.0] * 1024,  # Dummy embedding (not used for images)
-                user_id=user_id,
-                session_id=session_id,
-                filename=filename,
-                file_path=unique_filename
-            )
-            
-            return jsonify({
-                'success': True,
-                'type': 'image',
-                'id': image_id,  # Use database ID
-                'url': image_data_url,
-                'filename': filename,
-                'size': len(image_bytes),
-                'file_path': unique_filename
-            })
-        except Exception as e:
-            return jsonify({'error': 'Failed to process image', 'details': str(e)}), 500
-
+    print("📤 Upload request received")
     try:
+        session_id = request.form.get('session_id') or request.args.get('session_id')
+        file = request.files.get('file')
+        
+        print(f"   Session ID: {session_id}")
+        print(f"   File received: {file.filename if file else 'None'}")
+        
+        if not file or not file.filename:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        if not session_id:
+            return jsonify({'error': 'No session ID provided'}), 400
+        
+        filename = file.filename
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        
+        print(f"   Filename: {filename}, Extension: {file_ext}")
+    
+        # Check if it's an image - handle differently (no embedding needed)
+        image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
+        if file_ext in image_extensions:
+            print(f"🖼️ Processing image file: {filename}")
+            try:
+                # Save image file to disk
+                safe_filename = secure_filename(filename)
+                unique_filename = f"{uuid.uuid4()}_{safe_filename}"
+                file_path = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
+                
+                print(f"   Unique filename: {unique_filename}")
+                print(f"   File path: {file_path}")
+                
+                image_bytes = file.read()
+                print(f"   Image bytes read: {len(image_bytes)} bytes")
+                
+                with open(file_path, 'wb') as f:
+                    f.write(image_bytes)
+                print(f"   Image saved to disk")
+                
+                # Create base64 for immediate display
+                image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                print(f"   Base64 encoded: {len(image_base64)} chars")
+                
+                mime_types = {
+                    'png': 'image/png',
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'gif': 'image/gif',
+                    'webp': 'image/webp',
+                    'bmp': 'image/bmp'
+                }
+                mime_type = mime_types.get(file_ext, 'image/jpeg')
+                image_data_url = f"data:{mime_type};base64,{image_base64}"
+                
+                # Save image metadata to database (no embedding, empty content)
+                user_id = None
+                if 'user' in session:
+                    user_id = session['user'].get('email') or session['user'].get('sub')
+                
+                print(f"🖼️ Saving image '{filename}' with user_id={user_id}, session_id={session_id}")
+                
+                # Check if this exact filename already exists in the session to prevent duplicates
+                existing_docs = get_document_metadata_for_session(session_id)
+                for doc in existing_docs:
+                    if doc.get('filename') == filename:
+                        print(f"⚠️ Image '{filename}' already exists in session, returning existing")
+                        return jsonify({
+                            'success': True,
+                            'type': 'image',
+                            'id': doc['id'],
+                            'url': image_data_url,
+                            'filename': filename,
+                            'size': len(image_bytes),
+                            'file_path': doc.get('file_path', unique_filename),
+                            'duplicate': True
+                        })
+                
+                # Store image reference in database for persistence
+                image_id, created_at = save_document(
+                    content=f"[IMAGE: {filename}]",  # Placeholder content
+                    embedding=[0.0] * 1024,  # Dummy embedding (not used for images)
+                    user_id=user_id,
+                    session_id=session_id,
+                    filename=filename,
+                    file_path=unique_filename
+                )
+                
+                return jsonify({
+                    'success': True,
+                    'type': 'image',
+                    'id': image_id,  # Use database ID
+                    'url': image_data_url,
+                    'filename': filename,
+                    'size': len(image_bytes),
+                    'file_path': unique_filename
+                })
+            except Exception as e:
+                print(f"❌ Error processing image: {e}", flush=True)
+                import traceback
+                traceback.print_exc()
+                import sys
+                sys.stdout.flush()
+                sys.stderr.flush()
+                return jsonify({'error': 'Failed to process image', 'details': str(e)}), 500
+
+        # Handle document uploads (not images)
         # Check document limit for session
         current_count = count_documents_for_session(session_id)
         if current_count >= Config.MAX_DOCUMENTS_PER_SESSION:
@@ -306,7 +373,6 @@ def upload_document():
         filename = file.filename
         
         # Save original file to disk for viewing
-        from werkzeug.utils import secure_filename
         safe_filename = secure_filename(filename)
         unique_filename = f"{uuid.uuid4()}_{safe_filename}"
         file_path = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
@@ -374,22 +440,29 @@ def upload_document():
         
         document_ids = []
         for i, chunk in enumerate(chunks):
-            # Generate embeddings for each chunk (use "passage" type for storage)
-            embedding = get_embeddings(chunk, input_type="passage")
-            
-            # Create chunk filename
-            chunk_filename = filename if len(chunks) == 1 else f"{filename} (part {i+1}/{len(chunks)})"
-            
-            # Save chunk to database (all chunks share the same file_path)
-            document_id, created_at = save_document(
-                chunk,
-                embedding,
-                user_id=user_id,
-                session_id=session_id,
-                filename=chunk_filename,
-                file_path=unique_filename  # All chunks reference the same original file
-            )
-            document_ids.append(document_id)
+            try:
+                # Generate embeddings for each chunk (use "passage" type for storage)
+                print(f"📊 Generating embedding for chunk {i+1}/{len(chunks)} (length: {len(chunk)})")
+                embedding = get_embeddings(chunk, input_type="passage")
+                
+                # Create chunk filename
+                chunk_filename = filename if len(chunks) == 1 else f"{filename} (part {i+1}/{len(chunks)})"
+                
+                # Save chunk to database (all chunks share the same file_path)
+                document_id, created_at = save_document(
+                    chunk,
+                    embedding,
+                    user_id=user_id,
+                    session_id=session_id,
+                    filename=chunk_filename,
+                    file_path=unique_filename  # All chunks reference the same original file
+                )
+                document_ids.append(document_id)
+            except Exception as chunk_error:
+                print(f"❌ Error processing chunk {i+1}/{len(chunks)}: {chunk_error}")
+                import traceback
+                traceback.print_exc()
+                raise Exception(f"Failed to process chunk {i+1}: {str(chunk_error)}")
 
         # Update session activity
         update_session_activity(session_id)
@@ -413,7 +486,12 @@ def upload_document():
         })
         
     except Exception as e:
-        print(f"Error in upload_document: {e}")
+        print(f"❌ Error in upload_document: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
         return jsonify({'error': 'Upload failed', 'details': str(e)}), 500
 
 

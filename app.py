@@ -45,7 +45,10 @@ def create_app():
     allowed_origins = [
         "http://localhost:5173", 
         "http://localhost:5174", 
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:3000"
     ]
     
     # Add production URL from environment variable
@@ -54,10 +57,12 @@ def create_app():
         allowed_origins.append(production_url)
     
     CORS(app, 
-         supports_credentials=True, 
+         supports_credentials=True,  # CRITICAL for session cookies
          origins=allowed_origins,
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         allow_headers=["Content-Type", "Authorization"])
+         allow_headers=["Content-Type", "Authorization"],
+         expose_headers=["Content-Type"],
+         max_age=3600)  # Cache preflight requests for 1 hour
     
     # Debug: Print registered routes
     print("\n📍 Registered Routes:")

@@ -144,17 +144,23 @@ def start_trial():
         
         print(f"🔍 Trial start requested for: {name}")  # Debug log
         
+        # Generate a unique trial ID
+        import uuid
+        trial_id = str(uuid.uuid4())
+        
         # Create trial session
         session['user'] = {
             'email': None,
             'name': name,
             'picture': None,
-            'sub': f"trial_{session.get('_id', 'unknown')}",
+            'sub': f"trial_{trial_id}",
             'auth_type': 'trial'
         }
         session.permanent = False  # Trial sessions expire when browser closes
+        session.modified = True  # Force session to be saved
         
         print(f"✅ Trial session created: {session['user']}")  # Debug log
+        print(f"📦 Session ID: {trial_id}")
         
         return jsonify({
             'success': True,
@@ -163,6 +169,8 @@ def start_trial():
         
     except Exception as e:
         print(f"❌ Trial start error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'Failed to start trial', 'details': str(e)}), 500
 
 
@@ -177,6 +185,11 @@ def logout():
 def auth_status():
     """Check current authentication status"""
     user = session.get('user')
+    
+    # Debug logging
+    print(f"🔍 Auth status check - Session has user: {user is not None}")
+    if user:
+        print(f"   User type: {user.get('auth_type')}, Name: {user.get('name')}")
     
     return jsonify({
         'authenticated': user is not None,
