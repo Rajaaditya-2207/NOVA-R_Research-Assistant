@@ -419,22 +419,48 @@ def get_document_metadata_for_session(session_id):
     conn = _conn()
     cur = _cursor(conn)
     _execute(cur, """
-        SELECT id, filename, LENGTH(content) AS size, created_at
+        SELECT id, filename, content, file_data, LENGTH(content) AS size, created_at
         FROM documents
         WHERE session_id = ? AND filename IS NOT NULL AND filename != '' AND filename != 'Document'
         ORDER BY created_at DESC
     """, (session_id,))
     rows = cur.fetchall()
     conn.close()
-    return [
-        {
+    
+    result = []
+    for row in rows:
+        doc = {
             "id": row["id"],
             "name": row["filename"],
             "size": row["size"],
             "uploaded_at": row["created_at"]
         }
-        for row in rows
-    ]
+        
+        # Check if it's an image (content starts with [IMAGE:)
+        content = row["content"] or ""
+        if content.startswith("[IMAGE:"):
+            doc["type"] = "image"
+            # Include file_data for image preview
+            if row["file_data"]:
+                # Determine mime type from filename
+                filename = row["filename"] or ""
+                ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpeg'
+                mime_types = {
+                    'png': 'image/png',
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'gif': 'image/gif',
+                    'webp': 'image/webp',
+                    'bmp': 'image/bmp'
+                }
+                mime_type = mime_types.get(ext, 'image/jpeg')
+                doc["url"] = f"data:{mime_type};base64,{row['file_data']}"
+        else:
+            doc["type"] = "document"
+        
+        result.append(doc)
+    
+    return result
 
 
 def get_documents_for_user(user_id):
