@@ -48,8 +48,14 @@ def google_login():
     session['auth_redirect'] = redirect_after
     
     # Generate OAuth redirect with explicit callback URL
-    # This ensures the redirect_uri matches what's registered in Google Console
-    redirect_uri = url_for('auth.google_callback', _external=True)
+    # Use production URL if in production, otherwise use Flask's url_for
+    if Config.IS_PRODUCTION:
+        # Explicitly construct the callback URL for production
+        production_url = os.getenv('PRODUCTION_URL', Config.FRONTEND_URL)
+        redirect_uri = f"{production_url}/auth/callback/google"
+    else:
+        redirect_uri = url_for('auth.google_callback', _external=True)
+    
     return google.authorize_redirect(redirect_uri)
 
 
