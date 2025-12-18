@@ -109,9 +109,8 @@ def create_app():
     return app
 
 
+# Create app instance for both development and Vercel deployment
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     app.run(host="0.0.0.0", port=3000, debug=True)
-else:
-    # For Vercel serverless deployment
-    app = create_app()
