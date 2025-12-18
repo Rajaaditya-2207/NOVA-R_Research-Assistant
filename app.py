@@ -10,15 +10,17 @@ def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
     app.config.from_object(Config)
 
-    # Ensure upload folder exists
-    upload_folder = app.config.get("UPLOAD_FOLDER", "uploads")
-    try:
-        os.makedirs(upload_folder, exist_ok=True)
-    except Exception:
-        pass
+    # Ensure upload folder exists (skip in production/serverless)
+    if not app.config.get('IS_PRODUCTION'):
+        upload_folder = app.config.get("UPLOAD_FOLDER", "uploads")
+        try:
+            os.makedirs(upload_folder, exist_ok=True)
+        except Exception:
+            pass
 
-    # Initialize server-side sessions
-    Session(app)
+    # Initialize server-side sessions (only for filesystem in development)
+    if app.config.get('SESSION_TYPE') != 'null':
+        Session(app)
 
     # Initialize database (creates tables if they don't exist)
     try:
@@ -110,3 +112,6 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(host="0.0.0.0", port=3000, debug=True)
+else:
+    # For Vercel serverless deployment
+    app = create_app()

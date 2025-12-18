@@ -5,13 +5,15 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "supersecret-change-in-production")
-    SESSION_TYPE = os.getenv("SESSION_TYPE", "filesystem")
+    
+    # Session Configuration - use null (client-side) for Vercel
+    IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production'
+    SESSION_TYPE = 'null' if IS_PRODUCTION else os.getenv("SESSION_TYPE", "filesystem")
     
     # Database Configuration - supports PostgreSQL for production
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/novar.db")
     
     # Deployment mode
-    IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production'
     ENABLE_PERSISTENCE = os.getenv('ENABLE_PERSISTENCE', 'true').lower() == 'true'
     
     # Session Cookie Configuration (for cross-origin OAuth)
