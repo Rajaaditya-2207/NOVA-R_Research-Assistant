@@ -257,7 +257,7 @@ def get_document_by_id(document_id):
     conn = _conn()
     cur = _cursor(conn)
     _execute(cur, """
-        SELECT id, content, embedding, filename, file_data, file_path, created_at 
+        SELECT id, content, embedding, filename, file_data, created_at 
         FROM documents 
         WHERE id = ?
     """, (document_id,))
@@ -270,7 +270,6 @@ def get_document_by_id(document_id):
             "embedding": json.loads(row["embedding"]) if row["embedding"] else None,
             "filename": row["filename"],
             "file_data": row["file_data"],
-            "file_path": row.get("file_path"),
             "created_at": row["created_at"]
         }
     return None
@@ -504,28 +503,6 @@ def delete_document(document_id, session_id=None):
     conn.close()
     return deleted > 0
 
-
-def get_document_by_id(document_id):
-    """Retrieve a single document by ID"""
-    conn = _conn()
-    cur = _cursor(conn)
-    _execute(cur, """
-        SELECT id, content, filename, created_at
-        FROM documents
-        WHERE id = ?
-    """, (document_id,))
-    row = cur.fetchone()
-    conn.close()
-    
-    if not row:
-        return None
-    
-    return {
-        "id": row["id"],
-        "content": row["content"],
-        "filename": row["filename"],
-        "created_at": row["created_at"]
-    }
 
 
 def delete_documents_by_pattern(base_filename, session_id):

@@ -488,6 +488,58 @@ def list_session_documents(session_id):
         return jsonify({'error': 'Failed to retrieve documents', 'details': str(e)}), 500
 
 
+@chat_bp.route('/documents/file/<int:document_id>', methods=['GET'])
+def get_document_file(document_id):
+    """Retrieve a specific file by document ID for preview"""
+    try:
+        from services.db_service import get_document_by_id
+        doc = get_document_by_id(document_id)
+        
+        if not doc:
+            return jsonify({'error': 'File not found', 'details': '404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.'}), 404
+        
+        # Check if it's an image
+        content = doc.get('content', '')
+        if content.startswith('[IMAGE:'):
+            file_data = doc.get('file_data')
+            if not file_data:
+                return jsonify({'error': 'Image data not found'}), 404
+            
+            # Determine mime type from filename
+            filename = doc.get('filename', '')
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpeg'
+            mime_types = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'bmp': 'image/bmp'
+            }
+            mime_type = mime_types.get(ext, 'image/jpeg')
+            
+            # Return image as data URL
+            return jsonify({
+                'id': doc['id'],
+                'filename': filename,
+                'type': 'image',
+                'url': f"data:{mime_type};base64,{file_data}"
+            })
+        else:
+            # Return document metadata
+            return jsonify({
+                'id': doc['id'],
+                'filename': doc.get('filename', ''),
+                'type': 'document',
+                'content': content[:500]  # Preview first 500 chars
+            })
+    except Exception as e:
+        print(f"Error retrieving file {document_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to retrieve file', 'details': str(e)}), 500
+
+
 @chat_bp.route('/documents/user/all', methods=['GET'])
 def list_user_documents():
     """Retrieve all documents uploaded by the current user across all sessions"""
