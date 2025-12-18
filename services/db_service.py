@@ -437,12 +437,13 @@ def get_document_metadata_for_session(session_id):
         
         # Check if it's an image (content starts with [IMAGE:)
         content = row["content"] or ""
+        filename = row["filename"] or ""
+        
         if content.startswith("[IMAGE:"):
             doc["type"] = "image"
             # Include file_data for image preview
             if row["file_data"]:
                 # Determine mime type from filename
-                filename = row["filename"] or ""
                 ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpeg'
                 mime_types = {
                     'png': 'image/png',
@@ -454,8 +455,17 @@ def get_document_metadata_for_session(session_id):
                 }
                 mime_type = mime_types.get(ext, 'image/jpeg')
                 doc["url"] = f"data:{mime_type};base64,{row['file_data']}"
+            else:
+                # Older image without file_data
+                doc["preview_available"] = False
         else:
             doc["type"] = "document"
+            # Add content preview for documents
+            if content and len(content) > 0:
+                doc["preview"] = content[:500]  # First 500 chars
+                doc["preview_available"] = True
+            else:
+                doc["preview_available"] = False
         
         result.append(doc)
     
