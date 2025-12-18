@@ -149,25 +149,26 @@ def ask_question():
             if image_data_list:
                 all_images.extend(image_data_list)
             
-            # Add attached images - need to load them from disk
+            # Add attached images - load from database
             if attached_images:
                 for img in attached_images:
-                    file_path = img.get('file_path')
-                    if file_path:
-                        full_path = os.path.join(Config.UPLOAD_FOLDER, file_path)
+                    img_id = img.get('id')
+                    if img_id:
                         try:
-                            with open(full_path, 'rb') as f:
-                                img_bytes = f.read()
-                                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                                # Determine mime type from file extension
-                                ext = file_path.rsplit('.', 1)[-1].lower()
+                            # Get image data from database
+                            from services.db_service import get_document_by_id
+                            doc = get_document_by_id(img_id)
+                            if doc and doc.get('file_data'):
+                                # file_data is base64, wrap in data URL
+                                filename = doc.get('filename', '')
+                                ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpeg'
                                 mime_map = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 
                                            'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp'}
                                 mime_type = mime_map.get(ext, 'image/jpeg')
-                                all_images.append(f"data:{mime_type};base64,{img_base64}")
-                                print(f"   Loaded attached image: {img.get('filename')}")
+                                all_images.append(f"data:{mime_type};base64,{doc['file_data']}")
+                                print(f"   Loaded attached image from database: {filename}")
                         except Exception as e:
-                            print(f"   Error loading image {file_path}: {e}")
+                            print(f"   Error loading image {img_id}: {e}")
             
             # Use vision model for image analysis
             chat_history = get_chat_history(session_id, limit=10)
@@ -281,22 +282,16 @@ def upload_document():
         if file_ext in image_extensions:
             print(f"🖼️ Processing image file: {filename}")
             try:
-                # Save image file to disk
+                # Read image bytes
                 safe_filename = secure_filename(filename)
                 unique_filename = f"{uuid.uuid4()}_{safe_filename}"
-                file_path = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
                 
                 print(f"   Unique filename: {unique_filename}")
-                print(f"   File path: {file_path}")
                 
                 image_bytes = file.read()
                 print(f"   Image bytes read: {len(image_bytes)} bytes")
                 
-                with open(file_path, 'wb') as f:
-                    f.write(image_bytes)
-                print(f"   Image saved to disk")
-                
-                # Create base64 for immediate display
+                # Store as base64 for database storage
                 image_base64 = base64.b64encode(image_bytes).decode('utf-8')
                 print(f"   Base64 encoded: {len(image_base64)} chars")
                 
@@ -334,14 +329,15 @@ def upload_document():
                             'duplicate': True
                         })
                 
-                # Store image reference in database for persistence
+                # Store image in database with base64 data
                 image_id, created_at = save_document(
                     content=f"[IMAGE: {filename}]",  # Placeholder content
                     embedding=[0.0] * 1024,  # Dummy embedding (not used for images)
                     user_id=user_id,
                     session_id=session_id,
                     filename=filename,
-                    file_path=unique_filename
+                    file_path=unique_filename,
+                    file_data=image_base64  # Store base64 data in database
                 )
                 
                 return jsonify({
@@ -372,17 +368,9 @@ def upload_document():
         raw_content = file.read()
         filename = file.filename
         
-        # Save original file to disk for viewing
+        # Generate unique filename for reference (not saving to disk in production)
         safe_filename = secure_filename(filename)
         unique_filename = f"{uuid.uuid4()}_{safe_filename}"
-        file_path = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
-        
-        try:
-            with open(file_path, 'wb') as f:
-                f.write(raw_content)
-        except Exception as save_error:
-            print(f"Error saving file: {save_error}")
-            # Continue anyway - we can still embed the text
         
         # Extract text based on file type
         content = ""

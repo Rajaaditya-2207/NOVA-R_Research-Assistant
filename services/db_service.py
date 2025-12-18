@@ -65,6 +65,7 @@ def init_db():
                 user_id TEXT,
                 session_id TEXT,
                 filename TEXT,
+                file_data TEXT,
                 created_at TIMESTAMP NOT NULL,
                 FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
             )
@@ -107,6 +108,7 @@ def init_db():
                 user_id TEXT,
                 session_id TEXT,
                 filename TEXT,
+                file_data TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (session_id) REFERENCES sessions(id)
             )
@@ -179,16 +181,22 @@ def _dict_row(row):
     return dict(row)
 
 
-def save_document(content, embedding, user_id=None, session_id=None, filename=None, file_path=None):
+def save_document(content, embedding, user_id=None, session_id=None, filename=None, file_path=None, file_data=None):
     """Save a document with its embedding to the database"""
     conn = _conn()
     cur = _cursor(conn)
     created_at = datetime.utcnow().isoformat()
     _execute(cur, """
-        INSERT INTO documents (content, embedding, user_id, session_id, filename, file_path, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (content, json.dumps(embedding), user_id, session_id, filename, file_path, created_at))
-    document_id = cur.lastrowid
+        INSERT INTO documents (content, embedding, user_id, session_id, filename, file_path, file_data, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (content, json.dumps(embedding), user_id, session_id, filename, file_path, file_data, created_at))
+    
+    if IS_POSTGRES:
+        _execute(cur, "SELECT lastval()")
+        document_id = cur.fetchone()['lastval']
+    else:
+        document_id = cur.lastrowid
+    
     conn.commit()
     conn.close()
     return document_id, created_at
@@ -225,6 +233,30 @@ def get_documents_for_session(session_id):
         }
         for row in rows
     ]
+
+
+def get_document_by_id(document_id):
+    """Retrieve a single document by ID with all fields including file_data"""
+    conn = _conn()
+    cur = _cursor(conn)
+    _execute(cur, """
+        SELECT id, content, embedding, filename, file_data, file_path, created_at 
+        FROM documents 
+        WHERE id = ?
+    """, (document_id,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row["id"],
+            "content": row["content"],
+            "embedding": json.loads(row["embedding"]) if row["embedding"] else None,
+            "filename": row["filename"],
+            "file_data": row["file_data"],
+            "file_path": row.get("file_path"),
+            "created_at": row["created_at"]
+        }
+    return None
 
 
 def get_all_documents():
