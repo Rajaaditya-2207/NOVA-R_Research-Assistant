@@ -1,5 +1,6 @@
 # chat/rag.py
-from services import get_embeddings
+from services.ai_service import get_embeddings
+import numpy as np
 
 def embed_text(text):
     return get_embeddings(text)
@@ -16,6 +17,14 @@ def retrieve_and_rank(query, documents, top_k=4):
     return [doc for _, doc in scored_docs[:top_k]]
 
 def cosine_similarity(vec1, vec2):
-    return sum(a*b for a, b in zip(vec1, vec2)) / (
-        (sum(a*a for a in vec1) ** 0.5) * (sum(b*b for b in vec2) ** 0.5)
-    )
+    """Calculate cosine similarity between two vectors"""
+    if not vec1 or not vec2:
+        return 0.0
+    
+    v1, v2 = np.array(vec1), np.array(vec2)
+    norm1, norm2 = np.linalg.norm(v1), np.linalg.norm(v2)
+    
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+        
+    return np.dot(v1, v2) / (norm1 * norm2)

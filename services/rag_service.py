@@ -1,10 +1,19 @@
-import sqlite3
 import numpy as np
 from services.db_service import get_all_documents, get_documents_for_session
 
+
 def cosine_similarity(vec1, vec2):
-    v1, v2 = np.array(vec1), np.array(vec2)
-    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+    v1 = np.array(vec1, dtype=float)
+    v2 = np.array(vec2, dtype=float)
+
+    if v1.size == 0 or v2.size == 0:
+        return 0.0
+
+    denom = np.linalg.norm(v1) * np.linalg.norm(v2)
+    if denom == 0:
+        return 0.0
+
+    return float(np.dot(v1, v2) / denom)
 
 def retrieve_context(query_vec, top_k=4, session_id=None):
     """
@@ -15,8 +24,18 @@ def retrieve_context(query_vec, top_k=4, session_id=None):
     scored = []
 
     for doc in docs:
-        content, embedding = doc["content"], doc["embedding"]
-        score = cosine_similarity(query_vec, embedding)
+        content, embedding = doc.get("content"), doc.get("embedding")
+        if not content or embedding is None:
+            continue
+
+        try:
+            score = cosine_similarity(query_vec, embedding)
+        except Exception:
+            continue
+
+        if not np.isfinite(score):
+            continue
+
         scored.append((score, content))
 
     # Sort and return top K
