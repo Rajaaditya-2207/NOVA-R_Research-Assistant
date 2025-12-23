@@ -614,9 +614,17 @@ const Chat: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-[#E0E0E0] transition-colors duration-200">
+    <div className="flex h-screen bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-[#E0E0E0] transition-colors duration-200 overflow-hidden">
+      {/* Mobile Sidebar Backdrop */}
+      {showSidebar && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+      
       {/* Session History Sidebar */}
-      <div className={`${showSidebar ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900`}>
+      <div className={`${showSidebar ? 'fixed md:relative inset-y-0 left-0 z-40 w-full sm:w-80 md:w-64' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900`}>
         <SessionHistory
           currentSessionId={sessionId}
           onSessionSelect={handleSessionSelect}
@@ -625,33 +633,33 @@ const Chat: React.FC = () => {
       </div>
       
       {/* Main Chat Area */}
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent">
-          <div className="flex items-center gap-4">
+        <header className="flex items-center justify-between p-2 sm:p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-transparent">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setShowSidebar(!showSidebar)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
               title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
             >
-              <Menu size={20} />
+              <Menu size={18} className="sm:w-5 sm:h-5" />
             </button>
             <Link to="/" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-              <ArrowLeft size={20} />
+              <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
             </Link>
-            <h1 className="font-semibold text-lg">NOVA-R</h1>
+            <h1 className="font-semibold text-base sm:text-lg">NOVA-R</h1>
           </div>
-          <div className="flex items-center gap-2">{/*Changed from line 536*/}
+          <div className="flex items-center gap-1 sm:gap-2">{/*Changed from line 536*/}
           {user && (
-            <div className="flex items-center gap-3 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
               {user.picture ? (
-                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
+                <img src={user.picture} alt={user.name} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-8 h-8 bg-sky-400 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-sky-400 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="hidden sm:block">
+              <div className="hidden md:block">
                 <p className="text-sm font-medium">{user.name}</p>
                 {user.auth_type === 'trial' && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">Trial Mode</p>
@@ -659,22 +667,22 @@ const Chat: React.FC = () => {
               </div>
             </div>
           )}
-          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <Settings2 size={20} />
+          <button className="hidden sm:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+            <Settings2 size={18} className="sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={toggleTheme}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            {theme === 'dark' ? <Sun size={18} className="sm:w-5 sm:h-5" /> : <Moon size={18} className="sm:w-5 sm:h-5" />}
           </button>
            <button
             onClick={() => void clearChat()}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Clear chat"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           {user && (
             <button
@@ -683,14 +691,14 @@ const Chat: React.FC = () => {
               title="Logout"
               aria-label="Logout"
             >
-              <LogOut size={20} />
+              <LogOut size={18} className="sm:w-5 sm:h-5" />
             </button>
           )}
         </div>
       </header>
 
       {/* Messages Area */}
-      <main className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 overflow-y-auto p-2 sm:p-4">
         <div className="max-w-3xl mx-auto">
           {messages.length === 0 && !isLoading && !isHistoryLoading && (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -956,7 +964,7 @@ const Chat: React.FC = () => {
         </div>
       )}
 
-      <footer className="p-4">
+      <footer className="p-2 sm:p-4">
         <div className="max-w-3xl mx-auto">
           {error && (
             <div className="flex items-center gap-2 bg-red-500/20 text-red-400 p-3 rounded-lg mb-4">
@@ -1052,7 +1060,7 @@ const Chat: React.FC = () => {
             </div>
           )}
           
-          <div className="bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-transparent rounded-full flex items-center p-2 shadow-lg transition-colors">
+          <div className="bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-transparent rounded-full flex items-center p-1 sm:p-2 shadow-lg transition-colors">
             <input
               ref={fileInputRef}
               type="file"
@@ -1064,10 +1072,10 @@ const Chat: React.FC = () => {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadedFiles.length >= 5 || isUploading || isBootstrapping}
-              className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50"
+              className="p-2 sm:p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50"
               title="Upload document"
             >
-              <Plus size={20} className="text-gray-700 dark:text-gray-300" />
+              <Plus size={18} className="sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />
             </button>
             <textarea
               ref={textareaRef}
@@ -1075,19 +1083,19 @@ const Chat: React.FC = () => {
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Ask NOVA-R"
-              className="flex-1 bg-transparent resize-none border-none outline-none px-4 text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
+              className="flex-1 bg-transparent resize-none border-none outline-none px-2 sm:px-4 text-sm sm:text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100"
               rows={1}
               disabled={isLoading || isBootstrapping}
             />
-            <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-              <Mic size={20} className="text-gray-700 dark:text-gray-300" />
+            <button className="hidden sm:block p-2 sm:p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              <Mic size={18} className="sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />
             </button>
             <button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading || isBootstrapping}
-              className="p-3 bg-blue-600 text-white rounded-full disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+              className="p-2 sm:p-3 bg-blue-600 text-white rounded-full disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
             >
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+              {isLoading ? <Loader2 size={18} className="sm:w-5 sm:h-5 animate-spin" /> : <Send size={18} className="sm:w-5 sm:h-5" />}
             </button>
           </div>
           <p className="text-xs text-center text-gray-500 dark:text-gray-500 mt-3">
